@@ -1,0 +1,6 @@
+@FrutasAPI_HostAddress = http://localhost:5051
+
+GET {{FrutasAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
