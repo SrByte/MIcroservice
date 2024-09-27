@@ -9,15 +9,19 @@ public class FrutasController : ControllerBase
     private static List<string> frutas = new List<string> { "Maçã", "Banana", "Laranja" };
 
     [HttpGet]
-    public IActionResult GetFrutas()
-    {
-        return Ok(frutas);
-    }
+public async Task<IActionResult> GetFrutas()
+{
+    // Simulando uma operação assíncrona
+    await Task.Delay(100);
+    return Ok(frutas);
+}
+   [HttpPost]
+public async Task<IActionResult> AddFruta([FromBody] string fruta)
+{
+    // Simulando uma operação assíncrona
+    await Task.Delay(100);
+    frutas.Add(fruta);
+    return Ok(frutas);
+}
 
-    [HttpPost]
-    public IActionResult AddFruta([FromBody] string fruta)
-    {
-        frutas.Add(fruta);
-        return Ok(frutas);
-    }
 }
