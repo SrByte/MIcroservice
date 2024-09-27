@@ -15,29 +15,30 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] UserLogin userLogin)
+public async Task<IActionResult> Login([FromBody] UserLogin userLogin)
+{
+    if (userLogin.Username == "admin" && userLogin.Password == "123")
     {
-        if (userLogin.Username == "admin" && userLogin.Password == "123")
-        {
-            var token = GenerateJwtToken();
-            return Ok(new { token });
-        }
-        return Unauthorized();
+        var token = await GenerateJwtTokenAsync();
+        return Ok(new { token });
     }
+    return Unauthorized();
+}
 
-    private string GenerateJwtToken()
-    {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+   private async Task<string> GenerateJwtTokenAsync()
+{
+    var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+    var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-        var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
-            expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireMinutes"])),
-            signingCredentials: credentials);
+    var token = new JwtSecurityToken(
+        issuer: _configuration["Jwt:Issuer"],
+        audience: _configuration["Jwt:Audience"],
+        expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireMinutes"])),
+        signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
+    return await Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
+}
+
 }
 
 public class UserLogin
