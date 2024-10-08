@@ -1,0 +1,87 @@
+CREATE TABLE Users (
+    Id INT PRIMARY KEY IDENTITY,
+    Username NVARCHAR(100) NOT NULL,
+    PasswordHash NVARCHAR(256) NOT NULL
+);
+
+CREATE TABLE Roles (
+    Id INT PRIMARY KEY IDENTITY,
+    Name NVARCHAR(100) NOT NULL
+);
+
+CREATE TABLE Claims (
+    Id INT PRIMARY KEY IDENTITY,
+    Type NVARCHAR(100) NOT NULL,
+    Value NVARCHAR(100) NOT NULL
+);
+CREATE TABLE UserRoles (
+    UserId INT,
+    RoleId INT,
+    PRIMARY KEY (UserId, RoleId),
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (RoleId) REFERENCES Roles(Id)
+);
+CREATE TABLE RoleClaims (
+    RoleId INT,
+    ClaimId INT,
+    PRIMARY KEY (RoleId, ClaimId),
+    FOREIGN KEY (RoleId) REFERENCES Roles(Id),
+    FOREIGN KEY (ClaimId) REFERENCES Claims(Id)
+);
+CREATE TABLE UserClaims (
+    UserId INT,
+    ClaimId INT,
+    PRIMARY KEY (UserId, ClaimId),
+    FOREIGN KEY (UserId) REFERENCES Users(Id),
+    FOREIGN KEY (ClaimId) REFERENCES Claims(Id)
+);
+CREATE TABLE ApiLogs (
+    Id INT PRIMARY KEY IDENTITY,
+    UserName NVARCHAR(100),
+    Method NVARCHAR(10),
+    Path NVARCHAR(255),
+    RequestTime DATETIME,
+    ResponseTime DATETIME,
+    StatusCode INT,
+    StatusCodeDescription NVARCHAR(255)
+);
+
+GO
+
+-- Populando a tabela Users com exemplos
+INSERT INTO Users (Username, PasswordHash) VALUES 
+('Admin', '$2a$12$7Q2/./WvGnD/Pu.X3hvlaeq0naYpFB9/SgUhvSMRk8z3dZzJgtY4C'), -- senha "123" criptografada
+('User1', '$2a$12$7Q2/./WvGnD/Pu.X3hvlaeq0naYpFB9/SgUhvSMRk8z3dZzJgtY4C'); -- senha "123" criptografada
+
+
+-- Populando a tabela Roles com exemplos
+INSERT INTO Roles (Name) VALUES 
+('AdminRole'), 
+('UserRole');
+-- Populando a tabela Claims com exemplos
+INSERT INTO Claims (Type, Value) VALUES 
+('Permission', 'ViewLegumes'), 
+('Permission', 'EditLegumes');
+
+-- Populando a tabela UserRoles com exemplos
+INSERT INTO UserRoles (UserId, RoleId) VALUES 
+((SELECT Id FROM Users WHERE Username = 'Admin'), (SELECT Id FROM Roles WHERE Name = 'AdminRole')),
+((SELECT Id FROM Users WHERE Username = 'User1'), (SELECT Id FROM Roles WHERE Name = 'UserRole'));
+
+-- Populando a tabela RoleClaims com exemplos
+INSERT INTO RoleClaims (RoleId, ClaimId) VALUES 
+((SELECT Id FROM Roles WHERE Name = 'AdminRole'), (SELECT Id FROM Claims WHERE Value = 'ViewLegumes')),
+((SELECT Id FROM Roles WHERE Name = 'AdminRole'), (SELECT Id FROM Claims WHERE Value = 'EditLegumes')),
+((SELECT Id FROM Roles WHERE Name = 'UserRole'), (SELECT Id FROM Claims WHERE Value = 'ViewLegumes'));
+
+-- Populando a tabela UserClaims com exemplos
+INSERT INTO UserClaims (UserId, ClaimId) VALUES 
+((SELECT Id FROM Users WHERE Username = 'Admin'), (SELECT Id FROM Claims WHERE Value = 'EditLegumes'));
+
+-- Populando a tabela ApiLogs com exemplos
+INSERT INTO ApiLogs (UserName, Method, Path, RequestTime, ResponseTime, StatusCode, StatusCodeDescription) VALUES 
+('Admin', 'GET', '/api/legumes', '2023-10-06 14:00:00', '2023-10-06 14:00:01', 200, 'OK'),
+('User1', 'POST', '/api/auth/login', '2023-10-06 14:05:00', '2023-10-06 14:05:02', 401, 'Unauthorized'),
+('Admin', 'PUT', '/api/legumes/1', '2023-10-06 14:10:00', '2023-10-06 14:10:01', 403, 'Forbidden'),
+('User1', 'DELETE', '/api/legumes/1', '2023-10-06 14:15:00', '2023-10-06 14:15:01', 404, 'Not Found'),
+('Admin', 'GET', '/api/legumes', '2023-10-06 14:20:00', '2023-10-06 14:20:01', 500, 'Internal Server Error');
