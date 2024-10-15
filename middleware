@@ -1,0 +1,148 @@
+Passo 1: Criação das Tabelas
+No SQL Server, você pode criar as tabelas RequestLogs e ResponseLogs para armazenar as informações de entrada e saída.
+
+sql
+Copy code
+CREATE TABLE RequestLogs (
+    Id INT PRIMARY KEY IDENTITY,
+    Method NVARCHAR(10),
+    Path NVARCHAR(255),
+    QueryString NVARCHAR(MAX),
+    RequestBody NVARCHAR(MAX),
+    Headers NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE ResponseLogs (
+    Id INT PRIMARY KEY IDENTITY,
+    StatusCode INT,
+    ResponseBody NVARCHAR(MAX),
+    Headers NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+Passo 2: Criação do Middleware para Log
+Agora, vamos criar um middleware em C# que loga os requests e responses nas respectivas tabelas.
+
+csharp
+Copy code
+public class RequestResponseLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<RequestResponseLoggingMiddleware> _logger;
+
+    public RequestResponseLoggingMiddleware(RequestDelegate next, ILogger<RequestResponseLoggingMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task Invoke(HttpContext context)
+    {
+        // Log request data
+        var request = await FormatRequest(context.Request);
+        await LogRequestToDatabase(context.Request);
+
+        // Call the next middleware in the pipeline
+        var originalBodyStream = context.Response.Body;
+        using var responseBody = new MemoryStream();
+        context.Response.Body = responseBody;
+
+        await _next(context);
+
+        // Log response data
+        var response = await FormatResponse(context.Response);
+        await LogResponseToDatabase(context.Response);
+
+        await responseBody.CopyToAsync(originalBodyStream);
+    }
+
+    private async Task<string> FormatRequest(HttpRequest request)
+    {
+        request.EnableBuffering();
+        var body = await new StreamReader(request.Body).ReadToEndAsync();
+        request.Body.Position = 0;
+        return body;
+    }
+
+    private async Task<string> FormatResponse(HttpResponse response)
+    {
+        response.Body.Seek(0, SeekOrigin.Begin);
+        var text = await new StreamReader(response.Body).ReadToEndAsync();
+        response.Body.Seek(0, SeekOrigin.Begin);
+        return text;
+    }
+
+    private async Task LogRequestToDatabase(HttpRequest request)
+    {
+        // Construa o SQL para inserir os dados do request na tabela
+        var query = @"INSERT INTO RequestLogs (Method, Path, QueryString, RequestBody, Headers) 
+                      VALUES (@Method, @Path, @QueryString, @RequestBody, @Headers)";
+
+        // Colete os dados
+        var parameters = new 
+        {
+            Method = request.Method,
+            Path = request.Path,
+            QueryString = request.QueryString.ToString(),
+            RequestBody = await FormatRequest(request),
+            Headers = JsonConvert.SerializeObject(request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()))
+        };
+
+        // Execute o comando SQL usando Dapper ou outra biblioteca de acesso a dados
+        using (var connection = new SqlConnection("SuaStringDeConexao"))
+        {
+            await connection.ExecuteAsync(query, parameters);
+        }
+    }
+
+    private async Task LogResponseToDatabase(HttpResponse response)
+    {
+        // Construa o SQL para inserir os dados da response na tabela
+        var query = @"INSERT INTO ResponseLogs (StatusCode, ResponseBody, Headers) 
+                      VALUES (@StatusCode, @ResponseBody, @Headers)";
+
+        // Colete os dados
+        var parameters = new 
+        {
+            StatusCode = response.StatusCode,
+            ResponseBody = await FormatResponse(response),
+            Headers = JsonConvert.SerializeObject(response.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()))
+        };
+
+        // Execute o comando SQL usando Dapper ou outra biblioteca de acesso a dados
+        using (var connection = new SqlConnection("SuaStringDeConexao"))
+        {
+            await connection.ExecuteAsync(query, parameters);
+        }
+    }
+}
+Passo 3: Registro do Middleware
+No arquivo Program.cs, registre o middleware dentro do pipeline de requisições.
+
+csharp
+Copy code
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        // Adicione serviços, se necessário
+
+        var app = builder.Build();
+
+        // Middleware de logging
+        app.UseMiddleware<RequestResponseLoggingMiddleware>();
+
+        // Demais middlewares e endpoints
+        app.MapControllers();
+
+        app.Run();
+    }
+}
+Explicação
+Tabelas: Criamos duas tabelas RequestLogs e ResponseLogs para armazenar as informações dos requests e responses.
+Middleware: O middleware captura os dados de cada request e response, formata os valores (como corpo, headers, etc.) e armazena essas informações no banco de dados usando Dapper ou outra ferramenta de acesso a dados.
+Isso criará logs detalhados dos requests e responses, armazenando-os no banco de dados para análise posterior.
+
+
