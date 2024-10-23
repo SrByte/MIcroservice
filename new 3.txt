@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Meu Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div id="wrapper">
+        <!-- Menu lateral -->
+        <div id="sidebar-wrapper">
+            <div class="sidebar-heading text-center">Meu Portal</div>
+            <div class="list-group list-group-flush">
+                <a href="#submenu1" data-bs-toggle="collapse" class="list-group-item list-group-item-action">Menu 1</a>
+                <div class="collapse" id="submenu1">
+                    <a href="@Url.Action("Index", "Home")" class="list-group-item list-group-item-action">Subitem 1</a>
+                </div>
+                <a href="#submenu2" data-bs-toggle="collapse" class="list-group-item list-group-item-action">Menu 2</a>
+                <div class="collapse" id="submenu2">
+                    <a href="#" class="list-group-item list-group-item-action">Subitem 2</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo principal -->
+        <div id="page-content-wrapper">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom d-flex justify-content-between">
+                <div class="container-fluid">
+                    <!-- Botão para mostrar/ocultar o menu lateral -->
+                    <button class="btn btn-primary" id="menu-toggle"><i class="fas fa-bars"></i></button>
+
+                    <!-- Botão de logout no lado direito -->
+                    <a class="btn btn-outline-dark ms-auto" href="#">Logout</a>
+                </div>
+            </nav>
+
+            <div class="container-fluid">
+                <h1 class="mt-4">@ViewData["Title"]</h1>
+                <div>
+                    @RenderBody()
+                </div>
+            </div>
+
+            <footer class="text-center text-lg-start mt-auto">
+                <div class="text-center p-3">
+                    &copy; 2024 Meu Portal
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Função para alternar o menu lateral
+        $("#menu-toggle").click(function (e) {
+            e.preventDefault();
+            $("#wrapper").toggleClass("toggled");
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+/* CSS já existente que você me enviou */
+#wrapper {
+    display: flex;
+    align-items: stretch;
+}
+
+#sidebar-wrapper {
+    min-height: 100vh;
+    width: 250px;
+    transition: all 0.5s;
+}
+
+#page-content-wrapper {
+    flex: 1;
+    transition: all 0.5s;
+}
+
+.toggled #sidebar-wrapper {
+    margin-left: -250px;
+}
+
+footer {
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/* CSS adicional do layout */
+
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#wrapper {
+    display: flex;
+    height: 100vh; /* Wrapper ocupa toda a altura da tela */
+}
+
+#sidebar-wrapper {
+    min-width: 250px;
+    max-width: 250px;
+    background-color: #f8f9fa;
+    height: 100vh; /* Faz com que o menu lateral ocupe toda a altura da tela */
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: all 0.3s ease; /* Transição suave ao esconder/mostrar o menu */
+}
+
+#page-content-wrapper {
+    margin-left: 250px; /* Compensa a largura do menu lateral */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease; /* Transição suave ao mover o conteúdo */
+}
+
+/* Classe para esconder o menu lateral */
+#wrapper.toggled #sidebar-wrapper {
+    margin-left: -250px;
+}
+
+/* Ajusta o conteúdo principal quando o menu está oculto */
+#wrapper.toggled #page-content-wrapper {
+    margin-left: 0;
+}
+
+footer {
+    background-color: #40E0D0; /* Azul turquesa */
+    padding: 1rem;
+    width: 100%;
+    position: relative;
+    bottom: 0;
+}
+
+.navbar-nav .nav-link {
+    margin-left: auto;
+}
+
+.container-fluid {
+    flex: 1; /* O conteúdo principal cresce para ocupar o espaço disponível */
+}
