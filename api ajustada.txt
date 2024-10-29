@@ -1,0 +1,112 @@
+using System.Data;
+using System.Data.SqlClient;
+using System.IO;
+using Microsoft.AspNetCore.Http;
+using Dapper;
+
+public class LoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly string _connection;
+
+    public LoggingMiddleware(RequestDelegate next, string connection)
+    {
+        _next = next;
+        _connection = connection;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        // Autenticação
+        if (!await AuthenticateAsync(context))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsync("Unauthorized");
+            return;
+        }
+
+        // Salva o stream de resposta original para restaurar depois
+        var originalResponseBodyStream = context.Response.Body;
+        using var responseBodyStream = new MemoryStream();
+        context.Response.Body = responseBodyStream;
+
+        // Log do request
+        await LogRequestAsync(context);
+
+        // Executa o próximo middleware
+        await _next(context);
+
+        // Log do response
+        await LogResponseAsync(context, responseBodyStream, originalResponseBodyStream);
+    }
+
+    private async Task<bool> AuthenticateAsync(HttpContext context)
+    {
+        var isAuthenticated = context.User?.Identity?.IsAuthenticated ?? false;
+        return isAuthenticated;
+    }
+
+    private async Task LogRequestAsync(HttpContext context)
+    {
+        context.Request.EnableBuffering();
+        var requestBody = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        context.Request.Body.Position = 0;
+
+        var empresaId = context.User.Claims.FirstOrDefault(c => c.Type == "name")?.Value ?? "Anonymous";
+        int? aplicacaoId = int.TryParse(context.User.Claims.FirstOrDefault(c => c.Type == "ApplicationId")?.Value, out var temp) ? temp : (int?)null;
+        var dataRecebimento = DateTime.Now;
+        var enderecoIpv4Servidor = context.Connection.LocalIpAddress?.ToString();
+        var enderecoIpv4Aplicacao = context.Connection.RemoteIpAddress?.ToString();
+        var portaIpv4Aplicacao = context.Connection.RemotePort;
+        var enderecoIpv6Aplicacao = context.Connection.RemoteIpAddress?.MapToIPv6().ToString();
+        var portaIpv6Aplicacao = context.Connection.RemotePort;
+
+        try
+        {
+            using var connection = new SqlConnection(_connection);
+            connection.Open();
+            await connection.ExecuteAsync("SPBR_LogApiChamadaEntrada", new
+            {
+                LogAutenticacaoEmpresaAplicacaoId = aplicacaoId,
+                ApiVersaoMetodoAcaoVerboId = 1, // Ajuste este valor conforme necessário
+                DataRecebimento = dataRecebimento,
+                EnderecoIpv4Servidor = enderecoIpv4Servidor,
+                EnderecoIpv4Aplicacao = enderecoIpv4Aplicacao,
+                PortaIpv4Aplicacao = portaIpv4Aplicacao,
+                EnderecoIpv6Aplicacao = enderecoIpv6Aplicacao,
+                PortaIpv6Aplicacao = portaIpv6Aplicacao,
+                RequestBody = requestBody
+            }, commandType: CommandType.StoredProcedure);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao logar o request: {ex.Message}");
+        }
+    }
+
+    private async Task LogResponseAsync(HttpContext context, MemoryStream responseBodyStream, Stream originalResponseBodyStream)
+    {
+        responseBodyStream.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(responseBodyStream).ReadToEndAsync();
+        responseBodyStream.Seek(0, SeekOrigin.Begin);
+
+        await responseBodyStream.CopyToAsync(originalResponseBodyStream);
+
+        // Log do response no banco de dados (aqui você pode customizar a lógica conforme necessário)
+        try
+        {
+            using var connection = new SqlConnection(_connection);
+            connection.Open();
+            await connection.ExecuteAsync("SPBR_LogApiChamadaSaida", new
+            {
+                ResponseBody = responseBody,
+                StatusCode = context.Response.StatusCode,
+                DataRetorno = DateTime.Now
+            }, commandType: CommandType.StoredProcedure);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao logar o response: {ex.Message}");
+        }
+    }
+}
