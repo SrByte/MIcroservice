@@ -1,0 +1,140 @@
+Uma arquitetura com camadas de Domain, Application e Infrastructure segue o padrão DDD (Domain-Driven Design) e a abordagem de separação de responsabilidades. Segue uma sugestão de como estruturar essas camadas para um web application em C#:
+
+1. Camada de Domain
+	•	É o núcleo da aplicação, onde as regras de negócio residem.
+	•	Responsabilidade: Modelar o domínio e encapsular a lógica de negócio.
+	•	Não depende de outras camadas.
+
+Estrutura sugerida:
+	•	Entities: Classes que representam os objetos principais do domínio.
+	•	Value Objects: Objetos que não possuem identidade própria (ex: Endereço, CPF).
+	•	Domain Services: Serviços que contêm lógica de negócio que não se encaixa em uma única entidade.
+	•	Aggregates: Conjunto de entidades relacionadas tratadas como uma única unidade.
+	•	Interfaces: Contratos para repositórios, serviços, ou outros componentes que serão implementados na camada de Infra.
+
+Exemplo:
+
+// Entities
+public class Order
+{
+    public int Id { get; private set; }
+    public DateTime Date { get; private set; }
+    public decimal Total { get; private set; }
+    
+    private readonly List<OrderItem> _items = new();
+    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+
+    public void AddItem(OrderItem item)
+    {
+        if (item == null) throw new ArgumentNullException(nameof(item));
+        _items.Add(item);
+    }
+
+    public decimal CalculateTotal() => _items.Sum(i => i.Price * i.Quantity);
+}
+
+// Value Object
+public class OrderItem
+{
+    public int ProductId { get; }
+    public decimal Price { get;
+    public int Quantity { get; }
+
+    public OrderItem(int productId, decimal price, int quantity)
+    {
+        ProductId = productId;
+        Price = price;
+        Quantity = quantity;
+    }
+}
+
+// Repository Interface
+public interface IOrderRepository
+{
+    Task<Order?> GetByIdAsync(int id);
+    Task SaveAsync(Order order);
+}
+
+2. Camada de Application
+	•	Faz a ponte entre Domain e Infrastructure.
+	•	Responsabilidade: Coordenar as regras de negócio (da camada de Domain) e orquestrar os serviços e repositórios.
+	•	Depende da camada de Domain.
+
+Estrutura sugerida:
+	•	Application Services: Classes que coordenam a execução das regras de negócio.
+	•	DTOs (Data Transfer Objects): Objetos usados para transferir dados entre as camadas.
+	•	Mediators ou Handlers: Gerenciam fluxos de execução em uma abordagem baseada em CQRS.
+	•	Validations: Validações específicas da aplicação.
+
+Exemplo:
+
+// DTO
+public record CreateOrderDto(int ProductId, decimal Price, int Quantity);
+
+// Application Service
+public class OrderService
+{
+    private readonly IOrderRepository _orderRepository;
+
+    public OrderService(IOrderRepository orderRepository)
+    {
+        _orderRepository = orderRepository;
+    }
+
+    public async Task<int> CreateOrderAsync(CreateOrderDto dto)
+    {
+        var order = new Order();
+        order.AddItem(new OrderItem(dto.ProductId, dto.Price, dto.Quantity));
+
+        await _orderRepository.SaveAsync(order);
+        return order.Id;
+    }
+}
+
+3. Camada de Infrastructure
+	•	Responsável por implementar contratos definidos na camada de Domain e conectar a aplicação a tecnologias externas, como banco de dados, APIs e serviços.
+	•	Depende das camadas de Domain e Application.
+
+Estrutura sugerida:
+	•	Repositories: Implementações dos repositórios para acesso ao banco de dados.
+	•	Mappers: Classes que transformam objetos de domínio em DTOs ou entidades persistidas.
+	•	External Services: Integrações com APIs externas ou serviços de terceiros.
+
+Exemplo:
+
+// Repository Implementation
+public class OrderRepository : IOrderRepository
+{
+    private readonly SqlConnection _connection;
+
+    public OrderRepository(SqlConnection connection)
+    {
+        _connection = connection;
+    }
+
+    public async Task<Order?> GetByIdAsync(int id)
+    {
+        var sql = "SELECT * FROM Orders WHERE Id = @Id";
+        var order = await _connection.QuerySingleOrDefaultAsync<Order>(sql, new { Id = id });
+        return order;
+    }
+
+    public async Task SaveAsync(Order order)
+    {
+        var sql = "INSERT INTO Orders (Date, Total) VALUES (@Date, @Total)";
+        await _connection.ExecuteAsync(sql, new { order.Date, order.Total });
+    }
+}
+
+Fluxo Geral
+	1.	A camada Application recebe requisições externas (ex: controllers, serviços).
+	2.	Ela chama as regras de negócio da camada de Domain.
+	3.	Os repositórios e serviços implementados na camada de Infrastructure são utilizados para persistência e comunicação externa.
+
+Boas Práticas
+	•	Dependência Invertida: Use interfaces na camada de Domain e injete implementações na Application/Infrastructure.
+	•	IoC/DI (Inversão de Controle): Configure dependências no startup para injetar os serviços e repositórios.
+	•	Isolamento: A camada Domain nunca deve depender de Application ou Infrastructure.
+	•	Testabilidade: Escreva testes unitários para a camada Domain e mocks para dependências externas.
+
+Com essa separação, sua aplicação será mais modular, testável e resiliente a mudanças. Se precisar de ajuda em algum ponto específico, posso detalhar!
