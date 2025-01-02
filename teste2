@@ -1,0 +1,307 @@
+using Microsoft.AspNetCore.Mvc;
+
+public class ProdutoController : Controller
+{
+    public IActionResult Index()
+    {
+        var produtos = new List<object>
+        {
+            new { Nome = "Produto 1", Preco = "10.00", Quantidade = "100" },
+            new { Nome = "Produto 2", Preco = "20.00", Quantidade = "200" }
+        };
+
+        return View(produtos);
+    }
+}
+
+
+
+
+
+
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const produtos = @Html.Raw(Json.Serialize(Model));
+            
+            const table = $('#productTable').DataTable({
+                data: produtos.map(produto => [
+                    produto.Nome,
+                    produto.Preco,
+                    produto.Quantidade,
+                    createActions(produto.Nome)
+                ]),
+                columns: [
+                    { title: 'Nome' },
+                    { title: 'Preço' },
+                    { title: 'Quantidade' },
+                    { title: 'Ações', orderable: false }
+                ]
+            });
+
+            function createActions(name) {
+                return `
+                    <button class="btn btn-sm btn-primary edit-btn" data-name="${name}">Editar</button>
+                    <button class="btn btn-sm btn-danger delete-btn" data-name="${name}">Excluir</button>
+                `;
+            }
+        });
+    </script>
+}
+
+
+
+<a href="#dashboardsSubmenu" class="list-group-item list-group-item-action menu-item" data-id="dashboardsSubmenu" data-bs-toggle="collapse" aria-expanded="false">
+    ...
+</a>
+<div class="collapse submenu" id="dashboardsSubmenu">
+    ...
+</div>
+
+
+
+<script>
+    $(document).ready(function () {
+        // Restaurar o estado dos menus
+        $('.menu-item').each(function () {
+            const id = $(this).data('id');
+            const isExpanded = localStorage.getItem(id) === 'true';
+            if (isExpanded) {
+                $(`#${id}`).addClass('show');
+            }
+        });
+
+        // Salvar o estado ao clicar
+        $('.menu-item').on('click', function () {
+            const id = $(this).data('id');
+            const isExpanded = $(`#${id}`).hasClass('show');
+            localStorage.setItem(id, !isExpanded);
+        });
+    });
+</script>
+
+
+
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+
+public class ProdutoController : Controller
+{
+    public IActionResult Index()
+    {
+        var produtos = new List<object>
+        {
+            new { Nome = "Produto 1", Preco = "10.00", Quantidade = "100" },
+            new { Nome = "Produto 2", Preco = "20.00", Quantidade = "200" }
+        };
+
+        return View(produtos);
+    }
+}
+
+
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Meu Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div id="wrapper">
+        <!-- Menu lateral -->
+        <div id="sidebar-wrapper">
+            <div class="profile-pic">
+                <p>Paulo Magalhães</p>
+            </div>
+            <div class="list-group list-group-flush">
+                <div>
+                    <a href="#dashboardsSubmenu" class="list-group-item list-group-item-action menu-item" data-id="dashboardsSubmenu" data-bs-toggle="collapse" aria-expanded="false">
+                        <span><i class="fas fa-tachometer-alt"></i> Dashboards</span>
+                        <span class="menu-arrow"><i class="fas fa-chevron-left"></i></span>
+                    </a>
+                    <div class="collapse submenu" id="dashboardsSubmenu">
+                        <div class="list-group-item submenu-active">
+                            <a href="@Url.Action("Index", "Produto")" class="list-group-item list-group-item-action">Produtos</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo principal -->
+        <div id="page-content-wrapper">
+            <nav class="navbar navbar-light bg-light border-bottom d-flex justify-content-between">
+                <div class="container-fluid d-flex align-items-center">
+                    <span id="menu-toggle"><i class="fas fa-bars"></i></span>
+                    <a class="btn btn-outline-dark ms-auto" href="#">Logout</a>
+                </div>
+            </nav>
+            <div class="container-fluid">
+                <h1 class="mt-4">@ViewData["Title"]</h1>
+                <div>@RenderBody()</div>
+            </div>
+            <footer class="mt-auto text-center">&copy; 2024 Grupo Rendimento</footer>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Restaurar o estado dos menus
+            $('.menu-item').each(function () {
+                const id = $(this).data('id');
+                const isExpanded = localStorage.getItem(id) === 'true';
+                if (isExpanded) {
+                    $(`#${id}`).addClass('show');
+                }
+            });
+
+            // Salvar o estado ao clicar
+            $('.menu-item').on('click', function () {
+                const id = $(this).data('id');
+                const isExpanded = $(`#${id}`).hasClass('show');
+                localStorage.setItem(id, !isExpanded);
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const produtos = @Html.Raw(Json.Serialize(Model));
+
+            const table = $('#productTable').DataTable({
+                data: produtos.map(produto => [
+                    produto.Nome,
+                    produto.Preco,
+                    produto.Quantidade,
+                    createActions(produto.Nome)
+                ]),
+                columns: [
+                    { title: 'Nome' },
+                    { title: 'Preço' },
+                    { title: 'Quantidade' },
+                    { title: 'Ações', orderable: false }
+                ]
+            });
+
+            function createActions(name) {
+                return `
+                    <button class="btn btn-sm btn-primary edit-btn" data-name="${name}">Editar</button>
+                    <button class="btn btn-sm btn-danger delete-btn" data-name="${name}">Excluir</button>
+                `;
+            }
+
+            $(document).on('click', '.edit-btn', function () {
+                const data = table.row($(this).parents('tr')).data();
+                $('#editName').val(data[0]);
+                $('#editPrice').val(data[1]);
+                $('#editQuantity').val(data[2]);
+                $('#editModal').modal('show');
+            });
+
+            $(document).on('click', '.delete-btn', function () {
+                const data = table.row($(this).parents('tr')).data();
+                $('#deleteDetails').text(`Nome: ${data[0]}, Preço: ${data[1]}, Quantidade: ${data[2]}`);
+                $('#deleteModal').modal('show');
+            });
+
+            $('#saveEdit').click(function () {
+                const row = table.row($('.edit-btn[data-name="' + $('#editName').val() + '"]').parents('tr'));
+                row.data([
+                    $('#editName').val(),
+                    $('#editPrice').val(),
+                    $('#editQuantity').val(),
+                    createActions($('#editName').val())
+                ]).draw();
+                $('#editModal').modal('hide');
+            });
+
+            $('#confirmDelete').click(function () {
+                const row = table.row($('.delete-btn[data-name="' + $('#deleteDetails').text().split(',')[0].split(': ')[1] + '"]').parents('tr'));
+                row.remove().draw();
+                $('#deleteModal').modal('hide');
+            });
+
+            $('#newProduct').click(function () {
+                $('#editName').val('');
+                $('#editPrice').val('');
+                $('#editQuantity').val('');
+                $('#editModal').modal('show');
+            });
+        });
+    </script>
+}
+
+<div class="container mt-4">
+    <button id="newProduct" class="btn btn-success mb-3">Novo</button>
+    <table id="productTable" class="display" style="width:100%"></table>
+
+    <!-- Modal Editar -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Editar Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="editName" class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="editName">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPrice" class="form-label">Preço</label>
+                            <input type="text" class="form-control" id="editPrice">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editQuantity" class="form-label">Quantidade</label>
+                            <input type="text" class="form-control" id="editQuantity">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                    <button id="saveEdit" type="button" class="btn btn-primary">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Excluir -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Excluir Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteDetails"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="confirmDelete" type="button" class="btn btn-danger">Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
